@@ -1,0 +1,9 @@
+[general]
+import = [
+  "/etc/xdg/alacritty/themes/gnome_terminal.toml"
+]
+[font.normal]
+family="Fixed"
+style="Bold"
+
+
