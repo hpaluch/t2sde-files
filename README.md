@@ -35,7 +35,7 @@ file download/mirror/r/rsync-3.4.1.tar.gz.extck-err
 # fixed with: found link on: https://www.linuxfromscratch.org/blfs/view/svn/basicnet/rsync.html
 curl -fLo download/mirror/r/rsync-3.4.1.tar.gz  https://www.samba.org/ftp/rsync/src/rsync-3.4.1.tar.gz
 file download/mirror/r/rsync-3.4.1.tar.gz
-# => download/mirror/r/rsync-3.4.1.tar.gz: gzip compressed data, ... 
+# => download/mirror/r/rsync-3.4.1.tar.gz: gzip compressed data, ...
 rm download/mirror/r/rsync-3.4.1.tar.gz.extck-err
 # again try build it:
 t2 install rsync
@@ -53,6 +53,27 @@ t2 clean # remove all aborted builds
 t2 install mesa # install lot of build deps
 t2 install thunderbird # same
 t2 upgrade
+t2 install libxfce4windowing # same - install deps
+
+# new update
+t2 up
+svn info | grep '^Last Changed' | cut -d ' ' -f 4- | tr '\n' ' ';echo
+# => foxdrodd 74894 2025-03-09 11:00:15 +0100 (Sun, 09 Mar 2025)
+
+# we have to enable introspection and rebuild all packages
+# that wil generate .gir files, following https://t2sde.org/kb/8/
+t2 install -f gobject-introspection gdk-pixbuf pango harfbuzz at-spi2-core graphene gtk
+# new addition:
+t2 install -f libxfce4util
+t2 upgrade
+
+# corrupted icu4c mirror:
+curl -fLo download/mirror/i/icu4c-75_1-data.zip https://github.com/unicode-org/icu/releases/download/release-75-1/icu4c-75_1-data.zip
+file download/mirror/i/icu4c-75_1-data.zip
+rm -f download/mirror/i/icu4c-75_1-data.zip.extck-err
+# force installation of build deps:
+t2 install libreoffice
+
+t2 upgrade
 ```
 
- 
