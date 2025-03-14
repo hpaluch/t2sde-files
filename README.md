@@ -6,6 +6,55 @@ Please see:
 * official homepage of T2SDE Linux: https://t2sde.org/
 * my wiki: https://github.com/hpaluch/hpaluch.github.io/wiki/T2SDE
 
+# Minimalist image
+
+I'm now testing cross-build of really minimalist image for `x86_64` - just 16 packages
+to be (cross) build.
+
+> [!WARNING]
+>
+> Work in progress.
+
+To use it:
+- tested on following T2SDE revision:
+  ```shell
+  $ cd /usr/src/t2-src
+  $ svn info | grep '^Last Changed'
+
+  Last Changed Author: notag
+  Last Changed Rev: 75040
+  Last Changed Date: 2025-03-13 22:39:45 +0100 (Thu, 13 Mar 2025)
+  ```
+- copy contents from [config/crossmin/](config/crossmin/) under
+  your `/usr/src/t2-src`
+- run this command (as root) to invoke cross-build:
+  ```shell
+  cd /usr/src/t2-src
+  # run command below to review settings
+  t2 config -cfg crossmin
+  # run command below to cross-build truly minimal image
+  t2 build-target -cfg crossmin
+  ```
+- you will likely encounter error while building `2-linux`, which means
+  stage 2, package `linux` (kernel)
+  ```
+  /usr/src/t2-src/package/kernel/linux/linux.conf:
+     line 176: x86_64-t2-linux-uclibc-depmod: command not found
+  ```
+- trying to fix with:
+  ```shell
+  t2 build-target -cfg crossmin 2-kmod
+  t2 build-target -cfg crossmin
+  ```
+
+
+Note on configuration:
+- I selected `Embedded minimal` that uses uClibc runtime with `busybox` for commands and `dropbear` for SSHD server
+  for really minimal system - see `target/embedded*` under your source dir for configuration.
+- I unchecked `Stack protection` because some  uLibc components has issues with it
+- I always use `Abort build after stage (9)` which means "abort build in any stage"
+
+
 # Random setup commands:
 
 ```shell
