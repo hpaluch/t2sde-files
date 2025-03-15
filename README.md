@@ -43,10 +43,36 @@ To use it:
   ```
 - trying to fix with:
   ```shell
-  t2 build-target -cfg crossmin 2-kmod
+  vim config/crossmin/packages # enable scdoc for 02
+  t2 build-target -cfg crossmin 0-scdoc
+  t2 build-target -cfg crossmin 0-kmod
+  # restart build of kernel
+  t2 build-target -cfg crossmin
+  # will fail on missing /embutils, fixing with:
+  # if embutils were already installed we must remove all packages
+  # with conflicting files:
+  mine -r -R build/crossmin-25-svn-embedded-minimal-x86-64-nocona-cross-linux/ embutils coreutils
+  # must build coreutils first to force embutils to install into dedicated dir
+  t2 build-target -cfg crossmin 2-coreutils
+  # only now can build embutils (after coreutils)
+  t2 build-target -cfg crossmin 2-embutils
+  # additional required fixes:
+  t2 build-target -cfg crossmin 1-zstd
+  t2 build-target -cfg crossmin 2-fget 
+  t2 build-target -cfg crossmin 2-disktype
+  t2 build-target -cfg crossmin 2-ipconfig
+  t2 build-target -cfg crossmin 2-sed
+  ( cd build/crossmin-25-svn-embedded-minimal-x86-64-nocona-cross-linux && cp bin/sed usr/embutils/sed )
+  # now run Host mkinitrd with chroot (must be absolute path!)
+  /sbin/mkinitrd -R `pwd`/build/crossmin-25-svn-embedded-minimal-x86-64-nocona-cross-linux
+  # these are required for Image scripts: kbd pciutils ncurses
+  t2 build-target -cfg crossmin 2-pciutils
+  # but kbd fails with hard-error and ncurses is not there
+  mkdir -p build/crossmin-25-svn-embedded-minimal-x86-64-nocona-cross-linux/etc/stone.d
+
+  # TODO: Uuugh so many issues....
   t2 build-target -cfg crossmin
   ```
-
 
 Note on configuration:
 - I selected `Embedded minimal` that uses uClibc runtime with `busybox` for commands and `dropbear` for SSHD server
