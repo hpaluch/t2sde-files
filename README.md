@@ -6,7 +6,55 @@ Please see:
 * official homepage of T2SDE Linux: https://t2sde.org/
 * my wiki: https://github.com/hpaluch/hpaluch.github.io/wiki/T2SDE
 
-# Minimalist image
+
+# Cross base Wayland image
+
+Now testing cross-building Wayland image (basically same as official ISO but from
+latest commit).
+
+Tested commit:
+```shell
+$ cd /usr/src/t2-src
+$ svn info | grep '^Last Changed'
+
+Last Changed Author: rene
+Last Changed Rev: 75092
+Last Changed Date: 2025-03-15 22:57:37 +0100 (Sat, 15 Mar 2025)
+```
+Tested config is under [config/crosswland/](config/crosswland).
+
+Commands so far:
+```shell
+t2 config -cfg crosswland
+t2 install perl perl-xml-parser python python-installer setuptools pip jinja2 ninja meson libtool libxml autoconf
+t2 build-target -cfg crosswland 0-scdoc
+t2 build-target -cfg crosswland
+# work in progress.. - will fail on  linux-firmware with: ERROR: the GNU parallel command is required to use -j
+t2 install parallel
+t2 build-target -cfg crosswland
+# but GNU parallel will cause other error:
+#   Created file outside basedir: /root/.parallel/tmp
+# running it again fixes it (because these files already exists before build)
+
+# have to fix rsync download from my project ..../hpaluch-pil/t2sde-patches/fix_rsync_mirror.sh
+# and run again
+t2 build-target -cfg crosswland
+# new error: Program 'mesa_clc' not found or not executable
+# trying:
+t2 install mesa # answer 'y' to all questions
+# resume cross-build
+t2 build-target -cfg crosswland
+# 2-serf: scons not found
+t2 install scons
+# 2-openjdk - requires zip
+t2 install zip
+# gnome/gtk+ - vanished file errors - simply re-run build
+# but next: 2-librsvg - requires cargo-cbuild
+t2 install cargo-c
+...
+```
+
+# Minimalist "embedded" image
 
 I'm now testing cross-build of really minimalist image for `x86_64` - just 16 packages
 to be (cross) build.
@@ -58,7 +106,7 @@ To use it:
   t2 build-target -cfg crossmin 2-embutils
   # additional required fixes:
   t2 build-target -cfg crossmin 1-zstd
-  t2 build-target -cfg crossmin 2-fget 
+  t2 build-target -cfg crossmin 2-fget
   t2 build-target -cfg crossmin 2-disktype
   t2 build-target -cfg crossmin 2-ipconfig
   t2 build-target -cfg crossmin 2-sed
