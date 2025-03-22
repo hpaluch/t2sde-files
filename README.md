@@ -34,13 +34,15 @@ Last Changed Author: rene
 Last Changed Rev: 75316
 Last Changed Date: 2025-03-22 11:07:22 +0100 (Sat, 22 Mar 2025)
 
-# I need git:
+# I need git and mc :-)
 
-$ t2 install -optional-deps=no git
+$ t2 install -optional-deps=no git mc
 
 # These tools are required on host system:
+# (scons required by serf which is http/s library for SVN client)0
+# (mtools required image creation script)
 
-$ t2 install perl perl-xml-parser python python-installer setuptools pip jinja2 ninja meson libtool libxml autoconf
+$ t2 install perl perl-xml-parser python python-installer setuptools pip jinja2 ninja meson libtool libxml autoconf scons mtools
 ```
 
 Now copy our new Template "cli" (original posted on my branch:
@@ -99,13 +101,44 @@ curl -fLo download/mirror/r/rsync-3.4.1.tar.gz  https://www.samba.org/ftp/rsync/
 rm -f download/mirror/r/rsync-3.4.1.tar.gz.extck-err
 # resume cross-build
 t2 build-target -cfg crosscli
-# next failure: 2-network/serf: scons: command not found
-# (serf is http(s) client used by svn client
-#  - in recent past it broked badly due kTLS BIO error codes mismatch
-t2 install scons
-# note: you can't use 0-scons or 2-scons,
-# because it somehow escapes sandbox and installs directly to Host python dir!
+```
 
+Next error:
+
+```
+6:33:41 191/197 Building 2-kernel/linux (6.13.7) ~18m:56s
+  Stack-Smashing Protector disabled for this package
+  Position-Independent Executables disabled for this package
+  Building in src.linux.crosscli.250322.163341.26128, with 9 threads
+  Writing output to $root/var/adm/logs/2-linux.out
+!       /usr/sbin/smartctl NEEDS /usr/lib64/libstdc++.so.6
+!       /usr/lib64/libstdc++.so.6 SYMLINKS to libstdc++.so.6.0.33
+! '/usr/src/t2-src/src.linux.crosscli.250322.163341.26128/tmp/tmp.Cp2TKXrIQe.d/usr/lib64/libstdc++.so.6' -> 'libstdc++.so.6.0.33'
+! Warning: Skipped optional file /usr/sbin/cache_check!
+! Warning: Skipped optional file /usr/embutils/dmesg!
+! cat: '/usr/src/t2-src/build/crosscli-25-svn-generic-x86-64-nocona-cross-linux/lib/firmware/amd-ucode/microcode_amd*.bin': No such file or directory
+! Due to previous errors, no 2-linux.log file!
+! (Try enabling xtrace in the config to track an error inside the build system.)
+```
+
+Reported here: https://github.com/rxrbln/t2sde/issues/225
+
+Workaround:
+```shell
+# 2-kernel/linux:  build/.../lib/firmware/amd-ucode/microcode_amd*.bin': No such file or directory
+# wrong priorities:
+
+grep -E ' (linux|linux-firmware|mkinitrd) ' config/crosscli/packages
+
+X --2------- 100.000 base mkinitrd 2025-01-10 / base/system CROSS 0
+X --2------- 800.000 kernel linux 6.13.7 / base/kernel CROSS KERNEL CUSTOM-LTO NO-PIE NO-SSP 0
+X -12------- 999.000 firmware linux-firmware 20250311 / base/firmware CROSS 0
+
+# workaround:
+t2 build-target -cfg crosscli 2-linux-firmware
+# if above builds fail with error: Created file outside basedir: /root/.parallel
+# simply run it again (this time will above files already exist not triggering error)
+t2 build-target -cfg crosscli 2-linux-firmware
 # resume cross-build
 t2 build-target -cfg crosscli
 ```
