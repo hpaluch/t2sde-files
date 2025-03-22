@@ -6,8 +6,120 @@ Please see:
 * official homepage of T2SDE Linux: https://t2sde.org/
 * my wiki: https://github.com/hpaluch/hpaluch.github.io/wiki/T2SDE
 
+# My first ISO cross-build - "CLI" template
 
-# Cross base Wayland image
+> Why Cross build? Because Host build (stage 9) heavily depends on current
+> state of system and often fails for various reasons.
+>
+> So I have found that cross-build is significantly more stable and reproducible
+> than Host build.
+
+I created my own template called "CLI" based on "base" in "generic" target.
+However I removed all bloat that takes too long to build (`llvm`, `clang`,
+`cargo`, `rustc`):
+
+- you can find original `base` profile under `/usr/src/t2-src/target/generic/pkgsel/20-base.in`
+- my CLI profile is under `target/generic/pkgsel/15-cli.in` (has to be copied
+  under `/usr/src/t2-src/` later - see text below).
+
+I Installed latest T2 version 25.1 from:
+`t2-25.1-x86-64-base-wayland-glibc-gcc-nocona.iso` Then preparation:
+
+```shell
+$ cd /usr/src/t2-src/
+$ t2 up
+$ svn info | grep '^Last Change'
+
+Last Changed Author: rene
+Last Changed Rev: 75316
+Last Changed Date: 2025-03-22 11:07:22 +0100 (Sat, 22 Mar 2025)
+
+# I need git:
+
+$ t2 install -optional-deps=no git
+
+# These tools are required on host system:
+
+$ t2 install perl perl-xml-parser python python-installer setuptools pip jinja2 ninja meson libtool libxml autoconf
+```
+
+Now copy our new Template "cli" (original posted on my branch:
+https://github.com/hpaluch/t2sde/blob/br-cli-template/target/generic/pkgsel/15-cli.in):
+
+```shell
+x=target/generic/pkgsel/15-cli.in
+cp $x /usr/src/t2-src/$x
+```
+
+Run `t2 config -cfg crosscli` and change:
+
+```shell
+SDECFG_PKGSEL_TMPL='cli'
+SDECFG_X8664_OPT='nocona'
+SDECFG_CROSSBUILD='1'
+SDECFG_CONTINUE_ON_ERROR_AFTER='9
+```
+
+Build image with:
+
+```shell
+t2 build-target -cfg crosscli
+# will fail at 0-base/kmod on missing scdoc, workaround - install on Host (used by stage 0):
+t2 install scdoc
+# retry cross-builds:
+t2 build-target -cfg crosscli
+# will fail on 1-firmware/linux-firmware because of needed GNU parallel
+```
+
+NOTE: You can install GNU parallel, but you will need to build firmware two times:
+
+- 1st it will fail because GNU parallel will create new file under `/root`
+- 2nd it will proceed because there will be no new files under `/root` (files exist from previous boot)
+
+```shell
+t2 install parallel
+t2 build-target -cfg crosscli 1-linux-firmware
+# above command will fail with:  Created file outside basedir: /root/.parallel/tmp
+# workaround: simply run it again:
+t2 build-target -cfg crosscli 1-linux-firmware
+# now should pass, resume cross-build with:
+t2 build-target -cfg crosscli
+```
+
+Now it will fail on missing rsync:
+
+```
+File not found: download/mirror/r/rsync-3.4.1.tar.gz
+```
+
+Please run:
+
+```shell
+curl -fLo download/mirror/r/rsync-3.4.1.tar.gz  https://www.samba.org/ftp/rsync/src/rsync-3.4.1.tar.gz
+rm -f download/mirror/r/rsync-3.4.1.tar.gz.extck-err
+# resume cross-build
+t2 build-target -cfg crosscli
+# next failure: 2-network/serf: scons: command not found
+# (serf is http(s) client used by svn client
+#  - in recent past it broked badly due kTLS BIO error codes mismatch
+t2 install scons
+# note: you can't use 0-scons or 2-scons,
+# because it somehow escapes sandbox and installs directly to Host python dir!
+
+# resume cross-build
+t2 build-target -cfg crosscli
+```
+
+
+Finally create `crosscli.iso` and `crosscli.sha256` using:
+
+```shell
+t2 create-iso crosscli
+```
+
+It will create `crosscli.*` files right under `/usr/src/t2-src/`.
+
+# Cross base Wayland image - UNTESTED
 
 Now testing cross-building Wayland image (basically same as official ISO but from
 latest commit).
@@ -54,7 +166,7 @@ t2 install cargo-c
 ...
 ```
 
-# Minimalist "embedded" image
+# Minimalist "embedded" image - UNTESTED
 
 I'm now testing cross-build of really minimalist image for `x86_64` - just 16 packages
 to be (cross) build.
@@ -136,7 +248,7 @@ Note on configuration:
 passwd USERNAME
 ```
 
-# Upgrading T2 from 25.1 to latest trunk
+# Upgrading T2 from 25.1 to latest trunk - UNTESTED
 
 Goal: upgrade to latest revision:
 
