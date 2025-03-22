@@ -157,9 +157,8 @@ X lm_sensors
 #X stressapptest
 X tmux
 
-# required by iso creator - parted and bin/sh
+# required by iso creator - parted
 X parted
-X mksh
 
 #X llvm
 #X clang
