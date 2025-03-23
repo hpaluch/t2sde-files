@@ -8,7 +8,7 @@ Please see:
 
 # My first ISO cross-build - "CLI" template
 
-> Why Cross build? Because Host build (stage 9) heavily depends on current
+> Why cross-build? Because Host build (stage 9) heavily depends on current
 > state of system and often fails for various reasons.
 >
 > So I have found that cross-build is significantly more stable and reproducible
@@ -16,14 +16,21 @@ Please see:
 
 I created my own template called "CLI" based on "base" in "generic" target.
 However I removed all bloat that takes too long to build (`llvm`, `clang`,
-`cargo`, `rustc`):
+`cargo`, `rustc`) and also non x86 stuff.
 
 - you can find original `base` profile under `/usr/src/t2-src/target/generic/pkgsel/20-base.in`
 - my CLI profile is under `target/generic/pkgsel/15-cli.in` (has to be copied
   under `/usr/src/t2-src/` later - see text below).
 
-I Installed latest T2 version 25.1 from:
-`t2-25.1-x86-64-base-wayland-glibc-gcc-nocona.iso` Then preparation:
+I installed latest T2 version 25.1 from:
+`t2-25.1-x86-64-base-wayland-glibc-gcc-nocona.iso`. Then did preparation:
+
+WARNING! You must use SVN revision r7347 or later which removes unwanted
+dependency on GNU `parallel` command that has problematic behavior and causes
+issues when building `linux-firmware`, see
+https://github.com/rxrbln/t2sde/pull/226#issuecomment-2746141706
+
+Here are details of cross-build:
 
 ```shell
 $ cd /usr/src/t2-src/
@@ -31,26 +38,31 @@ $ t2 up
 $ svn info | grep '^Last Change'
 
 Last Changed Author: rene
-Last Changed Rev: 75316
-Last Changed Date: 2025-03-22 11:07:22 +0100 (Sat, 22 Mar 2025)
+Last Changed Rev: 75347
+Last Changed Date: 2025-03-23 11:40:20 +0100 (Sun, 23 Mar 2025)
 
 # I need git and mc :-)
 
 $ t2 install -optional-deps=no git mc
 
-# These tools are required on host system:
-# (scons required by serf which is http/s library for SVN client)0
-# (mtools required image creation script)
+# These additional tools are required on host system:
+# - scons required by serf which is http(s) library for SVN client
+# - mtools required for image creation script
+# - scdoc still required by kmod under some circumstances
 
-$ t2 install perl perl-xml-parser python python-installer setuptools pip jinja2 ninja meson libtool libxml autoconf scons mtools
+$ t2 install perl perl-xml-parser python python-installer setuptools \
+     pip jinja2 ninja meson libtool libxml autoconf scons mtools scdoc
 ```
 
-Now copy our new Template "cli" (original posted on my branch:
-https://github.com/hpaluch/t2sde/blob/br-cli-template/target/generic/pkgsel/15-cli.in):
+Now copy our new Template "cli" (original posted on my branch and project):
+
+- original: https://github.com/hpaluch/t2sde/blob/br-cli-template/target/generic/pkgsel/15-cli.in:
+- latest: https://github.com/hpaluch/t2sde-files/blob/master/target/generic/pkgsel/15-cli.in
 
 ```shell
+cd /usr/src/t2-src
 x=target/generic/pkgsel/15-cli.in
-cp $x /usr/src/t2-src/$x
+curl -fLo $x https://github.com/hpaluch/t2sde-files/raw/refs/heads/master/$x
 ```
 
 Run `t2 config -cfg crosscli` and change:
@@ -66,29 +78,9 @@ Build image with:
 
 ```shell
 t2 build-target -cfg crosscli
-# will fail at 0-base/kmod on missing scdoc, workaround - install on Host (used by stage 0):
-t2 install scdoc
-# retry cross-builds:
-t2 build-target -cfg crosscli
-# will fail on 1-firmware/linux-firmware because of needed GNU parallel
 ```
 
-NOTE: You can install GNU parallel, but you will need to build firmware two times:
-
-- 1st it will fail because GNU parallel will create new file under `/root`
-- 2nd it will proceed because there will be no new files under `/root` (files exist from previous boot)
-
-```shell
-t2 install parallel
-t2 build-target -cfg crosscli 1-linux-firmware
-# above command will fail with:  Created file outside basedir: /root/.parallel/tmp
-# workaround: simply run it again:
-t2 build-target -cfg crosscli 1-linux-firmware
-# now should pass, resume cross-build with:
-t2 build-target -cfg crosscli
-```
-
-Now it will fail on missing rsync:
+It may fail on missing `rsync`:
 
 ```
 File not found: download/mirror/r/rsync-3.4.1.tar.gz
@@ -103,54 +95,15 @@ rm -f download/mirror/r/rsync-3.4.1.tar.gz.extck-err
 t2 build-target -cfg crosscli
 ```
 
-Next error:
-
-```
-6:33:41 191/197 Building 2-kernel/linux (6.13.7) ~18m:56s
-  Stack-Smashing Protector disabled for this package
-  Position-Independent Executables disabled for this package
-  Building in src.linux.crosscli.250322.163341.26128, with 9 threads
-  Writing output to $root/var/adm/logs/2-linux.out
-!       /usr/sbin/smartctl NEEDS /usr/lib64/libstdc++.so.6
-!       /usr/lib64/libstdc++.so.6 SYMLINKS to libstdc++.so.6.0.33
-! '/usr/src/t2-src/src.linux.crosscli.250322.163341.26128/tmp/tmp.Cp2TKXrIQe.d/usr/lib64/libstdc++.so.6' -> 'libstdc++.so.6.0.33'
-! Warning: Skipped optional file /usr/sbin/cache_check!
-! Warning: Skipped optional file /usr/embutils/dmesg!
-! cat: '/usr/src/t2-src/build/crosscli-25-svn-generic-x86-64-nocona-cross-linux/lib/firmware/amd-ucode/microcode_amd*.bin': No such file or directory
-! Due to previous errors, no 2-linux.log file!
-! (Try enabling xtrace in the config to track an error inside the build system.)
-```
-
-Reported here: https://github.com/rxrbln/t2sde/issues/225
-
-Workaround:
-```shell
-# 2-kernel/linux:  build/.../lib/firmware/amd-ucode/microcode_amd*.bin': No such file or directory
-# wrong priorities:
-
-grep -E ' (linux|linux-firmware|mkinitrd) ' config/crosscli/packages
-
-X --2------- 100.000 base mkinitrd 2025-01-10 / base/system CROSS 0
-X --2------- 800.000 kernel linux 6.13.7 / base/kernel CROSS KERNEL CUSTOM-LTO NO-PIE NO-SSP 0
-X -12------- 999.000 firmware linux-firmware 20250311 / base/firmware CROSS 0
-
-# workaround:
-t2 build-target -cfg crosscli 2-linux-firmware
-# if above builds fail with error: Created file outside basedir: /root/.parallel
-# simply run it again (this time will above files already exist not triggering error)
-t2 build-target -cfg crosscli 2-linux-firmware
-# resume cross-build
-t2 build-target -cfg crosscli
-```
-
-
-Finally create `crosscli.iso` and `crosscli.sha256` using:
+When above build finishes, create `crosscli.iso` and `crosscli.sha256` using:
 
 ```shell
 t2 create-iso crosscli
 ```
 
 It will create `crosscli.*` files right under `/usr/src/t2-src/`.
+
+TODO: Test ISO
 
 # Cross base Wayland image - UNTESTED
 
