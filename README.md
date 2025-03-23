@@ -95,6 +95,12 @@ rm -f download/mirror/r/rsync-3.4.1.tar.gz.extck-err
 t2 build-target -cfg crosscli
 ```
 
+Measured cross-build time, verified on 2025-03-23:
+- svn revision 75347, 197 packages to build
+- template `target/generic/pkgsel/15-cli.in`
+- using 9 core VM, 20GB RAM, Host is `MSI Cubi 5` (10 cores, 12 threads, 32GB RAM)
+- results: cross-build took 2 hours 40 minutes
+
 When above build finishes, create `crosscli.iso` and `crosscli.sha256` using:
 
 ```shell
