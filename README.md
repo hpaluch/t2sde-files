@@ -84,7 +84,41 @@ Build image with:
 t2 build-target -cfg crosscli
 ```
 
-It may fail on missing `rsync`:
+New problem with `r77109, 12 May 2025`:
+- first libxcrypt - requires perl:
+
+  ```shell
+  Building 5-security/libxcrypt (4.4.36)
+  ...
+  checking for perl... no
+  ! checking whether  is version 5.14.0 or later... no
+  ! configure: error: Perl version 5.14.0 or later is required
+  
+  # workaround:
+  t2 build-target -cfg crosscli 5-perl
+  t2 build-target -cfg crosscli
+  ```
+  
+- second `5-glibc` requires python3:
+
+  ```shell
+  Building 5-base/glibc (2.41)
+  ...
+  ! checking for python3... no
+  ! checking for python... no
+  ! configure: error:
+  ! *** These critical programs are missing or too old: python
+  
+  # workaround:
+  t2 build-target -cfg crosscli 5-python
+  t2 build-target -cfg crosscli
+  ```
+  
+- final solution will be adding `X perl` and `X python` to my `15-cli.in`
+
+
+
+Old: It may fail on missing `rsync`:
 
 ```
 File not found: download/mirror/r/rsync-3.4.1.tar.gz
