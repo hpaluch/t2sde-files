@@ -72,6 +72,10 @@ SDECFG_PKGSEL_TMPL='cli'
 SDECFG_X8664_OPT='nocona'
 SDECFG_CROSSBUILD='1'
 SDECFG_CONTINUE_ON_ERROR_AFTER='9
+# update for: r77109, 12 May 2025
+# required to avoid 1-gcc build errors:
+# config: GCC Options -> UNCHECK "Enable GNAT"
+SDECFG_PKG_GCC_GNAT='0'
 ```
 
 Build image with:
