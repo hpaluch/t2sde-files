@@ -14,6 +14,11 @@ Please see:
 > So I have found that cross-build is significantly more stable and reproducible
 > than Host build.
 
+> [!WARNING!
+> I have to remove `ca-certificates`, because even those now depends on Rust.
+> It means that target system will not trust standard certificates (so `curl`
+> will need `-k` parameter to accept them).
+
 I created my own template called "CLI" based on "base" in "generic" target.
 However I removed all bloat that takes too long to build (`llvm`, `clang`,
 `cargo`, `rustc`) and also non x86 stuff.
@@ -22,13 +27,8 @@ However I removed all bloat that takes too long to build (`llvm`, `clang`,
 - my CLI profile is under `target/generic/pkgsel/15-cli.in` (has to be copied
   under `/usr/src/t2-src/` later - see text below).
 
-I installed latest T2 version 25.1 from:
-`t2-25.1-x86-64-base-wayland-glibc-gcc-nocona.iso`. Then did preparation:
-
-WARNING! You must use SVN revision r7347 or later which removes unwanted
-dependency on GNU `parallel` command that has problematic behavior and causes
-issues when building `linux-firmware`, see
-https://github.com/rxrbln/t2sde/pull/226#issuecomment-2746141706
+I installed latest T2 version 25.4 from:
+`t2-25.4-x86-64-base-wayland-glibc-gcc-nocona.iso`. Then did preparation:
 
 Here are details of cross-build:
 
@@ -38,8 +38,8 @@ $ t2 up
 $ svn info | grep '^Last Change'
 
 Last Changed Author: rene
-Last Changed Rev: 75347
-Last Changed Date: 2025-03-23 11:40:20 +0100 (Sun, 23 Mar 2025)
+Last Changed Rev: 77265
+Last Changed Date: 2025-05-19 13:22:05 +0200 (Mon, 19 May 2025)
 
 # I need git and mc :-)
 
@@ -84,60 +84,37 @@ Build image with:
 t2 build-target -cfg crosscli
 ```
 
-New problem with `r77109, 12 May 2025`:
-- first libxcrypt - requires perl:
-
+You may get error
+- on building `5-python/python-installer`:
+  ```
+  ! scripts/functions.in: line 842: unzip: command not found
+  ```
+- that's because `unzip` is build after `python-installer` (higher priority number):
   ```shell
-  Building 5-security/libxcrypt (4.4.36)
-  ...
-  checking for perl... no
-  ! checking whether  is version 5.14.0 or later... no
-  ! configure: error: Perl version 5.14.0 or later is required
-  
-  # workaround:
-  t2 build-target -cfg crosscli 5-perl
+  $ grep -Ew '(unzip|python-installer)' config/crosscli/packages 
+
+  X -----5---- 109.001 python python-installer 0.7.0 / extra/development CROSS 0
+  X 0----5---- 110.600 archiver unzip 60 / base/tool CROSS 0
+  ```
+- workaround:
+  ```shell
+  t2 build-target -cfg crosscli 5-unzip
   t2 build-target -cfg crosscli
   ```
-  
-- second `5-glibc` requires python3:
-
+- same for `scons` when building `5-serf`:
   ```shell
-  Building 5-base/glibc (2.41)
-  ...
-  ! checking for python3... no
-  ! checking for python... no
-  ! configure: error:
-  ! *** These critical programs are missing or too old: python
-  
-  # workaround:
-  t2 build-target -cfg crosscli 5-python
+  t2 build-target -cfg crosscli 5-scons
   t2 build-target -cfg crosscli
   ```
-  
-- final solution will be adding `X perl` and `X python` to my `15-cli.in`
 
+- again missing `strip` fix:
+  ```shell
+  ( cd build/crosscli-25-svn-generic-x86-64-nocona-linux/usr/bin &&
+    ln -s strip x86_64-t2-linux-gnu-strip )
+  ```
 
+- TODO: Resolve failure on `5-t2-src`
 
-Old: It may fail on missing `rsync`:
-
-```
-File not found: download/mirror/r/rsync-3.4.1.tar.gz
-```
-
-Please run:
-
-```shell
-curl -fLo download/mirror/r/rsync-3.4.1.tar.gz  https://www.samba.org/ftp/rsync/src/rsync-3.4.1.tar.gz
-rm -f download/mirror/r/rsync-3.4.1.tar.gz.extck-err
-# resume cross-build
-t2 build-target -cfg crosscli
-```
-
-Measured cross-build time, verified on 2025-03-23:
-- svn revision 75347, 197 packages to build
-- template `target/generic/pkgsel/15-cli.in`
-- using 9 core VM, 20GB RAM, Host is `MSI Cubi 5` (10 cores, 12 threads, 32GB RAM)
-- results: cross-build took 2 hours 40 minutes
 
 When above build finishes, create `crosscli.iso` and `crosscli.sha256` using:
 
