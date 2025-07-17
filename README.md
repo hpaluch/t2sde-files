@@ -38,12 +38,12 @@ $ t2 up
 $ svn info | grep '^Last Change'
 
 Last Changed Author: rene
-Last Changed Rev: 77265
-Last Changed Date: 2025-05-19 13:22:05 +0200 (Mon, 19 May 2025)
+Last Changed Rev: 79711
+Last Changed Date: 2025-07-17 12:49:03 +0200 (Thu, 17 Jul 2025)
 
 # I need git and mc :-)
 
-$ t2 install -optional-deps=no git mc
+$ t2 install -optional-deps=no git mc btop
 
 # These additional tools are required on host system:
 # - scons required by serf which is http(s) library for SVN client
@@ -83,6 +83,19 @@ Build image with:
 ```shell
 t2 build-target -cfg crosscli
 ```
+
+I got new error
+- at `0-python/setuptools`:
+  ```
+  /usr/src/t2-src/build/crosscli-25-svn-generic-x86-64-nocona-cross-linux/TOOLCHAIN/cross/bin/python: No module named installer
+  ```
+- to fix it - apply my patch from: [patches/python-installer-0-fix.diff](patches/python-installer-0-fix.diff)
+- and run:
+  ```shell
+  t2 build-target -cfg crosscli 0-python-installer
+  # resume 0 stage build
+  t2 build-target -cfg crosscli
+  ```
 
 You may get error
 - on building `5-python/python-installer`:
