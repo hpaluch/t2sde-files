@@ -14,7 +14,7 @@ Please see:
 > So I have found that cross-build is significantly more stable and reproducible
 > than Host build.
 
-> [!WARNING!
+> [!WARNING]
 > I have to remove `ca-certificates`, because even those now depends on Rust.
 > It means that target system will not trust standard certificates (so `curl`
 > will need `-k` parameter to accept them).
