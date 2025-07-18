@@ -59,6 +59,8 @@ X dosfstools
 #X reiserfsprogs
 X ntfsprogs
 X btrfs-progs
+# now requires lz4
+X lz4
 X squashfs-tools
 #X inih
 #X liburcu
@@ -103,6 +105,8 @@ X wireguard
 #X ca-certificates
 #X xxhash
 X rsync
+# docbook-xml required by PAM
+X docbook-xml
 X pam
 X libpcap
 #X ppp

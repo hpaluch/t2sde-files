@@ -159,36 +159,12 @@ Next error:
   t2 build-target -cfg crosscli
   ```
 
-You may get error
-- on building `5-python/python-installer`:
+Much later
+- error on `2-filesystem/squashfs-tools`
   ```
-  ! scripts/functions.in: line 842: unzip: command not found
+  lz4_wrapper.c:27:10: fatal error: lz4.h: No such file or directory
   ```
-- that's because `unzip` is build after `python-installer` (higher priority number):
-  ```shell
-  $ grep -Ew '(unzip|python-installer)' config/crosscli/packages
-
-  X -----5---- 109.001 python python-installer 0.7.0 / extra/development CROSS 0
-  X 0----5---- 110.600 archiver unzip 60 / base/tool CROSS 0
-  ```
-- workaround:
-  ```shell
-  t2 build-target -cfg crosscli 5-unzip
-  t2 build-target -cfg crosscli
-  ```
-- same for `scons` when building `5-serf`:
-  ```shell
-  t2 build-target -cfg crosscli 5-scons
-  t2 build-target -cfg crosscli
-  ```
-
-- again missing `strip` fix:
-  ```shell
-  ( cd build/crosscli-25-svn-generic-x86-64-nocona-linux/usr/bin &&
-    ln -s strip x86_64-t2-linux-gnu-strip )
-  ```
-
-- TODO: Resolve failure on `5-t2-src`
+- fixed in 15-cli
 
 
 When above build finishes, create `crosscli.iso` and `crosscli.sha256` using:
