@@ -84,6 +84,8 @@ Build image with:
 t2 build-target -cfg crosscli
 ```
 
+Total 210 packages to be build.
+
 I got new error
 - at `0-python/setuptools`:
   ```
@@ -97,6 +99,66 @@ I got new error
   t2 build-target -cfg crosscli
   ```
 
+Next error:
+- on `2-python/python`:
+  ```
+  /Modules/_gdbmmodule.c:12:10: fatal error: gdbm.h: No such file or directory
+  ```
+- looks like there is wrong build order (3rd column)
+  ```shell
+  $ awk '$5 == "python" || $5 == "gdbm" { print $0 }' config/crosscli/packages
+  X 0-2------- 102.300 python python 3.13.5 / base/development CROSS NO-PIE NO-SSP NO-LTO.mips NO-LTO.mips64 NO-LTO.clang 0
+  X --2------- 104.800 database gdbm 1.25 / base/library CROSS 0
+  ```
+- note: I have to use `awk` for package search, because there also exists group "python" rendering `grep -w python` command useless.
+  Awk can easily target package column (No. 5).
+- trying:
+  ```shell
+  t2 build-target -cfg crosscli 2-gdbm
+  # resume build
+  t2 build-target -cfg crosscli
+  ```
+
+Hmm, next error:
+- again on `2-python/python`:
+  ```
+  ./Modules/readline.c:43:12: fatal error: readline/readline.h: No such file or directory
+  ```
+- investigation:
+  ```shell
+  $ awk '$5 == "python" || $5 == "readline" { print $0 }' config/crosscli/packages
+  X 0-2------- 102.300 python python 3.13.5 / base/development CROSS NO-PIE NO-SSP NO-LTO.mips NO-LTO.mips64 NO-LTO.clang 0
+  X --2------- 104.100 base readline 8.3-001 / base/library CROSS DIETLIBC FAT-LTO.mips FAT-LTO.mips64 0
+  ```
+- same problem (104.100 is greater than 102.300 so readline would be build "after" python - which is too late), so again:
+  ```shell
+  t2 build-target -cfg crosscli 2-readline
+  # resume build
+  t2 build-target -cfg crosscli
+  ```
+
+
+Next error:
+- stage `2-base/pam`
+  ```
+  doc/man/meson.build:42:2: ERROR: Command `/usr/src/t2-src/build/crosscli-25-svn-generic-x86-64-nocona-cross-linux/TOOLCHAIN/cross/bin/xmllint
+  ```
+- real error from log seems to be:
+  ```
+  I/O warning : failed to load "http://docbook.org/xml/5.0/rng/docbookxi.rng": No such file or directory
+  Relax-NG parser error : xmlRelaxNGParse: could not load http://docbook.org/xml/5.0/rng/docbookxi.rng
+  Relax-NG schema http://docbook.org/xml/5.0/rng/docbookxi.rng failed to compile
+  ```
+- I added `docbook-xml` to config, but not sure, but it seems that just on Host system:
+  ```shell
+  t2 install docbook-xml
+  ```
+  fixed it(?)
+- and resume build with:
+  ```shell
+  t2 build-target -cfg crosscli
+  ```
+
 You may get error
 - on building `5-python/python-installer`:
   ```
@@ -104,7 +166,7 @@ You may get error
   ```
 - that's because `unzip` is build after `python-installer` (higher priority number):
   ```shell
-  $ grep -Ew '(unzip|python-installer)' config/crosscli/packages 
+  $ grep -Ew '(unzip|python-installer)' config/crosscli/packages
 
   X -----5---- 109.001 python python-installer 0.7.0 / extra/development CROSS 0
   X 0----5---- 110.600 archiver unzip 60 / base/tool CROSS 0
