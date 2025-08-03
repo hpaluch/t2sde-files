@@ -16,8 +16,9 @@ Please see:
 
 > [!WARNING]
 > I have to remove `ca-certificates`, because even those now depends on Rust.
-> It means that target system will not trust standard certificates (so `curl`
-> will need `-k` parameter to accept them).
+> It means that target system will not trust standard certificates, with
+> good exception of `curl(1)` that has its own copy of trusted CA in
+> `/etc/curl/cacert.pem`.
 
 I created my own template called "CLI" based on "base" in "generic" target.
 However I removed all bloat that takes too long to build (`llvm`, `clang`,
@@ -38,8 +39,9 @@ $ t2 up
 $ svn info | grep '^Last Change'
 
 Last Changed Author: rene
-Last Changed Rev: 79711
-Last Changed Date: 2025-07-17 12:49:03 +0200 (Thu, 17 Jul 2025)
+
+ast Changed Rev: 79772
+Last Changed Date: 2025-07-18 19:13:15 +0200 (Fri, 18 Jul 2025)
 
 # I need git and mc :-)
 
@@ -175,7 +177,10 @@ t2 create-iso crosscli
 
 It will create `crosscli.*` files right under `/usr/src/t2-src/`.
 
-TODO: Test ISO
+ISO Image tested on 2025-08-03:
+- `curl(1)` works fine - it has its own CA list in `/etc/curl/cacert.pem`
+- other programs will likely NOT work with `https`, becuase I excluded
+  `ca-certificates` to avoid dependency on Rust bloat.
 
 # Cross base Wayland image - UNTESTED
 
