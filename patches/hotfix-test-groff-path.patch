@@ -1,0 +1,20 @@
+--- groff-1.24.1/Makefile.in.orig	2026-04-12 20:16:15.893814851 +0200
++++ groff-1.24.1/Makefile.in	2026-04-12 20:16:38.940329596 +0200
+@@ -5877,7 +5877,7 @@
+ #
+ # Use '-K utf8', not '-k', in case 'configure' didn't find uchardet.
+ MOMPDFMOM = \
+-  GROFF_COMMAND=test-groff \
++  GROFF_COMMAND=./test-groff \
+   GROFF_COMMAND_PREFIX= \
+   GROFF_BIN_PATH="$(GROFF_BIN_PATH)" \
+   $(PDFMOMBIN) $(FFLAG) $(MFLAG) -M$(mom_srcdir) -K utf8 -p -e -t \
+@@ -6020,7 +6020,7 @@
+ @HAVE_URW_FONTS_TRUE@pdfmomoption = -P-W
+ @HAVE_URW_FONTS_TRUE@groffmanpagesoption = -P-e
+ DOC_PDFMOM = \
+-  GROFF_COMMAND=test-groff \
++  GROFF_COMMAND=./test-groff \
+   GROFF_COMMAND_PREFIX= \
+   GROFF_BIN_PATH="$(GROFF_BIN_PATH)" \
+   $(PDFMOMBIN) $(MFLAG) $(FFLAG) -ww -b $(pdfmomoption) --roff

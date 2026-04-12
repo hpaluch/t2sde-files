@@ -166,8 +166,52 @@ Hmm, next error - applies also for (T2SDE 26.3, 2026-04-12):
   t2 build-target -cfg crosscli
   ```
 
+New fine error (T2SDE 26.3, 2026-04-12):
+- error:
+  ```
+ File not found: download/mirror/n/netkit-base-0.17.tar.gz
+  Did you run scripts/Download for this package?
+! Due to previous errors, no 2-netkit-base.log file!
+! (Try enabling xtrace in the config to track an error inside the build system.)
+  +00:00:06 Aborted building network/netkit-base
+  ```
+- workaround:
+  ```shell
+  curl -fL -o /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz \
+    https://ftp.gwdg.de/pub/linux/misc/linux.org.uk/people/linux/Networking/netkit/netkit-base-0.17.tar.gz
+  ```
 
-Next error:
+And another new error:
+- error:
+  ```
+    Creating build/crosscli-26-svn-generic-x86-64-linux/TOOLCHAIN/pkgs/rocknet-2024-09-19.tar.zst
+  ! Removing CVS, .svn, {arch} and .arch-ids directories ...
+  ! Changing into /usr/src/t2-src/src.groff.crosscli.260412.184451.829763/groff-1.24.1 ...
+  ! Applying /usr/src/t2-src/package/textproc/groff/configure-csh.patch.cross
+  ! patching file configure
+  ! Hunk #1 FAILED at 25337.
+  ! 1 out of 1 hunk FAILED -- saving rejects to file configure.rej
+  ! Due to previous errors, no 2-groff.log file!
+  ! (Try enabling xtrace in the config to track an error inside the build system.)
+    +00:00:05 Aborted building textproc/groff
+  ```
+- dirty workaround:
+  ```shell
+  mv package/textproc/groff/configure-csh.patch.cross /root/
+  ```
+- but it will again fail - on script test-groff:
+  ```
+  ! sh: test-groff: inaccessible or not found
+  ! pdfmom: fatal error: test-groff exited with status 127                                                                ! sh: test-groff: inaccessible or not found
+  ! pdfmom: fatal error: test-groff exited with status 127                                                                ! Due to previous errors, no 2-groff.log file!
+  ! (Try enabling xtrace in the config to track an error inside the build system.)
+    +00:00:34 Aborted building textproc/groff
+  ```
+- fix: copy `patches/hotfix-test-groff-path.patch` to `/usr/src/t2-src/package/textproc/groff/hotfix-test-groff-path.patch` and run build again
+
+
+
+Next error - still applies:
 - stage `2-base/pam`
   ```
   doc/man/meson.build:42:2: ERROR: Command `/usr/src/t2-src/build/crosscli-25-svn-generic-x86-64-nocona-cross-linux/TOOLCHAIN/cross/bin/xmllint
@@ -186,6 +230,45 @@ Next error:
 - and resume build with:
   ```shell
   t2 build-target -cfg crosscli
+  ```
+
+New error:
+- error:
+  ```
+  ! Consider adjusting the PKG_CONFIG_PATH environment variable if you
+  ! installed software in a non-standard prefix.
+  ! Alternatively, you may set the environment variables UDEV_CFLAGS
+  ! and UDEV_LIBS to avoid the need to call pkg-config.
+  ! See the pkg-config man page for more details.
+  ! Due to previous errors, no 2-lvm2.log file!
+  ! (Try enabling xtrace in the config to track an error inside the build system.)
+    +00:00:01 Aborted building filesystem/lvm2
+  ```
+- log `build/crosscli-26-svn-generic-x86-64-linux/var/adm/logs/2-lvm2.err` reveals:
+  ```
+  configure: error: Package requirements (libudev >= 143) were not met:
+  No package 'libudev' found
+  ```
+- trying:
+  ```shell
+  t2 build-target -cfg crosscli 2-udev
+  t2 build-target -cfg crosscli # resume build
+  ```
+
+Another error:
+- error:
+  ```
+  20:32:11 197/216 Building 2-security/ca-certificates (20260223) ~1s
+  ! done
+  ! python3 certdata2pem.py
+  ! Traceback (most recent call last):
+  !   File "/usr/src/t2-src/src.ca-certificates.crosscli.260412.203211.1319550/ca-certificates/mozilla/certdata2pem.py ..
+  !     from cryptography import x509
+  ! ModuleNotFoundError: No module named 'cryptography'
+  ! Due to previous errors, no 2-ca-certificates.log file!
+  ! (Try enabling xtrace in the config to track an error inside the build system.)
+    +00:00:15 Aborted building security/ca-certificates
+  Aborting due to failure.
   ```
 
 Much later
