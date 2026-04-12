@@ -28,8 +28,7 @@ However I removed all bloat that takes too long to build (`llvm`, `clang`,
 - my CLI profile is under `target/generic/pkgsel/15-cli.in` (has to be copied
   under `/usr/src/t2-src/` later - see text below).
 
-I installed latest T2 version 25.4 from:
-`t2-25.4-x86-64-base-wayland-glibc-gcc-nocona.iso`. Then did preparation:
+I installed latest T2 version 26.3 from `t2-26.3-x86-64-desktop.iso`. Then did preparation.
 
 Here are details of cross-build:
 
@@ -38,10 +37,9 @@ $ cd /usr/src/t2-src/
 $ t2 up
 $ svn info | grep '^Last Change'
 
-Last Changed Author: rene
-
-ast Changed Rev: 79772
-Last Changed Date: 2025-07-18 19:13:15 +0200 (Fri, 18 Jul 2025)
+Last Changed Author: foxdrodd
+Last Changed Rev: 90029
+Last Changed Date: 2026-04-12 03:04:14 +0200 (Sun, 12 Apr 2026)
 
 # I need git and mc :-)
 
@@ -71,10 +69,10 @@ Run `t2 config -cfg crosscli` and change:
 
 ```shell
 SDECFG_PKGSEL_TMPL='cli'
-SDECFG_X8664_OPT='nocona'
+SDECFG_X8664_OPT='nocona' # or just 'generic'
 SDECFG_CROSSBUILD='1'
 SDECFG_CONTINUE_ON_ERROR_AFTER='9
-# update for: r77109, 12 May 2025
+# update for and later: r77109, 12 May 2025
 # required to avoid 1-gcc build errors:
 # config: GCC Options -> UNCHECK "Enable GNAT"
 SDECFG_PKG_GCC_GNAT='0'
@@ -85,10 +83,24 @@ Build image with:
 ```shell
 t2 build-target -cfg crosscli
 ```
+Total 216 packages to be build.
 
-Total 210 packages to be build.
+New error (T2SDE 26.3, 2026-04-12):
+- error:
+  ```
+  Downloading download/mirror/f/file-5.47.tar.gz
+  curl: (22) The requested URL returned error: 404
+  ```
+- and yes - https://www.astron.com/pub/file/ throws 404 - all files removed
+- even https://web.archive.org/web/20260207221845/http://www.astron.com/pub/file/
+  shows 5.46 as last version
+- fix (thanks God for Gentoo):
+  ```shell
+  curl -fL -o /usr/src/t2-src/download/mirror/f/file-5.47.tar.gz \
+     http://download.nus.edu.sg/mirror/gentoo/distfiles/72/file-5.47.tar.gz
+  ```
 
-I got new error
+This error still exists (T2SDE 26.3, 2026-04-12):
 - at `0-python/setuptools`:
   ```
   /usr/src/t2-src/build/crosscli-25-svn-generic-x86-64-nocona-cross-linux/TOOLCHAIN/cross/bin/python: No module named installer
@@ -101,7 +113,22 @@ I got new error
   t2 build-target -cfg crosscli
   ```
 
-Next error:
+New error (T2SDE 26.3, 2026-04-12):
+- glib:
+  ```
+  [57/704] Compiling C object glib/libglib-2.0.so.0.8800.0.p/gmessages.c.o
+  ! ninja: build stopped: subcommand failed.
+  ! Due to previous errors, no 0-glib.log file!
+  ```
+- some hint is in `build/crosscli-26-svn-generic-x86-64-linux/var/adm/logs/0-glib.err`
+- cause: `free_sized(3)` is enabled for `C23` standard only, but glib is build with `GNU99`
+  standard. But detection is buggy: symbol `free_sized` is always available (tested by Meson),
+  but header defines it only for C23 standard - so this leads to Implicit function declaration
+  error.
+- workaround: copy `patches/hotfix-free-sized.patch` to `/usr/src/t2-src/package/gnome/glib`
+  and build again
+
+Next error - applies also for (T2SDE 26.3, 2026-04-12):
 - on `2-python/python`:
   ```
   /Modules/_gdbmmodule.c:12:10: fatal error: gdbm.h: No such file or directory
@@ -121,7 +148,7 @@ Next error:
   t2 build-target -cfg crosscli
   ```
 
-Hmm, next error:
+Hmm, next error - applies also for (T2SDE 26.3, 2026-04-12):
 - again on `2-python/python`:
   ```
   ./Modules/readline.c:43:12: fatal error: readline/readline.h: No such file or directory

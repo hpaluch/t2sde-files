@@ -16,7 +16,7 @@ Index: package/python/python-installer/python-installer.desc
  
  pyinstall_inmake() {
 -	local sitedir=$root$libdir/python/site-packages
-+	local sitedir=$root$libdir/python3.13/site-packages
++	local sitedir=$root$libdir/python3.14/site-packages
  	mkdir -p $sitedir
  	cp -a installer* $sitedir
  	python3 -m compileall $sitedir
