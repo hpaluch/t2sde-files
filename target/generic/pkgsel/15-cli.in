@@ -32,6 +32,7 @@ X ninja
 #X python-cryptography
 # but ca-certificates now require Rust!!!
 #X python-maturin
+O ca-certificates
 
 # grub requires strip
 X binutils
