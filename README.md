@@ -124,6 +124,30 @@ Index: package/firmware/linux-firmware/linux-firmware.desc
 And run: `t2 build-target -cfg crosscli 2-linux-firmware`
 
 
+New readline error (different):
+```
+12:24:22 1/282 Building 5-base/readline (8.3.3) ~3s
+bash: error while loading shared libraries: libhistory.so.8: cannot open shared object file: No such file or directory
+bash: error while loading shared libraries: libhistory.so.8: cannot open shared object file: No such file or directory
+! bash: error while loading shared libraries: libhistory.so.8: cannot open shared object file: No such file or directory
+! bash: error while loading shared libraries: libhistory.so.8: cannot open shared object file: No such file or directory
+! mv /usr/lib64/libreadline.a /usr/lib64/libreadline.old
+! bash: error while loading shared libraries: libhistory.so.8: cannot open shared object file: No such file or directory
+! /TOOLCHAIN/build/crosscli-26-svn-generic-x86-64-linux/TOOLCHAIN/tools.chroot/wrapper/install -c -m 644 libreadline.a /usr/lib64/libreadline.a
+! bash: error while loading shared libraries: libhistory.so.8: cannot open shared object file: No such file or directory
+! Due to previous errors, no 5-readline.log file!
+! (Try enabling xtrace in the config to track an error inside the build system.)
+```
+- quick workaround
+- workaround: copy `patches/hotfix-free-sized.patch` to `/usr/src/t2-src/package/base/readline/`
+- first - restore completely broken system:
+  ```shell
+  t2 clean
+  mv build/crosscli-26-svn-generic-x86-64-linux/usr/lib64/libhistory.so.8.3{.old,}
+  # now should proceed
+  t2 build-target -cfg crosscli 5-readline
+  ```
+
 Next error - applies also for (T2SDE 26.3, 2026-04-12):
 - on `2-python/python`:
   ```
@@ -481,3 +505,12 @@ t2 install libreoffice
 t2 upgrade
 ```
 
+# Notes
+
+Building nvi (for fixfiles):
+- must use archive.org:
+  ```shell
+  curl -fL -o download/mirror/n/nvi-1.81.6.tar.xz https://web.archive.org/web/20241213183854if_/https://fossies.org/linux/privat/old/nvi-1.81.6.tar.xz
+  file download/mirror/n/nvi-1.81.6.tar.xz
+  # => download/mirror/n/nvi-1.81.6.tar.xz: XZ compressed data, checksum CRC64
+  ```
