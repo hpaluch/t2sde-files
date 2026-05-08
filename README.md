@@ -199,6 +199,8 @@ New fine error (T2SDE 26.3, 2026-04-12):
   ```shell
   curl -fL -o /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz \
     https://ftp.gwdg.de/pub/linux/misc/linux.org.uk/people/linux/Networking/netkit/netkit-base-0.17.tar.gz
+  file /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz
+  # => /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz: gzip compressed data, last modified: Mon Jul 31 00:10:39 2000, from Unix, original size modulo 2^32 225280
   ```
 
 And another new error:
@@ -229,7 +231,48 @@ And another new error:
   ```
 - fix: copy `patches/hotfix-test-groff-path.patch` to `/usr/src/t2-src/package/textproc/groff/hotfix-test-groff-path.patch` and run build again
 
+But now there is new error in tests (making debug output in test-groff script):
+```
+XXXX: /TOOLCHAIN/src.groff.crosscli.260508.142913.2834574/groff-1.24.1/groff -Tpdf -mom -Kutf8 - -F/TOOLCHAIN/src.groff.crosscli.260508.142913.2834574/groff-1.24.1/font -F/TOOLCHAIN/src.groff.crosscli.260508.142913.2834574/groff-1.24.1/font -M/TOOLCHAIN/src.groff.crosscli.260508.142913.2834574/groff-1.24.1/tmac -M/TOOLCHAIN/src.groff.crosscli.260508.142913.2834574/groff-1.24.1/tmac -M./contrib/mom -p -e -t -wall -b -P-W contrib/mom/examples/typesetting.mom
+XXXX: /TOOLCHAIN/src.groff.crosscli.260508.142913.2834574/groff-1.24.1/groff -Tpdf -dLABEL.REFS=1 -mom -z -F/TOOLCHAIN/src.groff.crosscli.260508.142913.2834574/groff-1.24.1/font -F/TOOLCHAIN/src.groff.crosscli.260508.142913.2834574/groff-1.24.1/font -M/TOOLCHAIN/src.groff.crosscli.260508.142913.2834574/groff-1.24.1/tmac -M/TOOLCHAIN/src.groff.crosscli.260508.142913.2834574/groff-1.24.1/tmac -M./contrib/mom -p -e -t -wall -b -P-W contrib/mom/examples/typesetting.mom
+gropdf: warning: The download file in '/usr/share/groff/1.24.1/font/devpdf' has erroneous entry for 'NewCenturySchlbk-Roman (NR)'
+gropdf: warning: The download file in '/usr/share/groff/1.24.1/font/devpdf' has erroneous entry for 'NewCenturySchlbk-Bold (NB)'
+gropdf: warning: The download file in '/usr/share/groff/1.24.1/font/devpdf' has erroneous entry for 'Palatino-Roman (PR)'
+gropdf: warning: The download file in '/usr/share/groff/1.24.1/font/devpdf' has erroneous entry for 'Palatino-Italic (PI)'
+pdfmom: fatal error: ./test-groff exited with status 4
+make[2]: *** [Makefile:19228: contrib/mom/examples/typesetting.pdf] Error 1
+make[2]: *** Deleting file 'contrib/mom/examples/typesetting.pdf'
+```
+Solution: apply following new patch:
+- `cp hotfix-groff-remove-palatino.patch patches//usr/src/t2-src/package/textproc/groff/`
+- test Groff build: `t2 build-target -cfg crosscli 5-groff`
+- on success resume with `t2 build-target -cfg crosscli`
 
+New error in: `5-python/jinja2`
+```
+! ModuleNotFoundError: No module named 'flit_core'
+! Due to previous errors, no 5-jinja2.log file!
+! (Try enabling xtrace in the config to track an error inside the build system.)
+  +00:00:03 Aborted building python/jinja2
+```
+Workaround:
+```shell
+t2 build-target -cfg crosscli 5-python-flit-core
+t2 build-target -cfg crosscli 5-jinja2
+t2 build-target -cfg crosscli
+```
+
+Another problem: `5-network/serf`
+```
+Running scons --jobs 12 CC=gcc PREFIX=/usr LIBDIR=/usr/lib64 APR=/usr/bin/apr-1-config APU=/usr/bin/apu-1-config
+! scripts/functions.in: line 1120: scons: command not found
+```
+Workaround:
+```shell
+t2 build-target -cfg crosscli 5-scons
+t2 build-target -cfg crosscli 5-serf
+t2 build-target -cfg crosscli
+```
 
 Next error - still applies:
 - stage `2-base/pam`

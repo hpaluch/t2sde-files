@@ -1,0 +1,50 @@
+--- groff-1.24.1/contrib/mom/examples/typesetting.mom.vanilla	2026-05-08 14:48:35.203391214 +0200
++++ groff-1.24.1/contrib/mom/examples/typesetting.mom	2026-05-08 14:51:00.062401903 +0200
+@@ -300,8 +300,9 @@
+ .ALD .25v
+ .UNDERSCORE 3.5p "A \*[BU2]recipe for enumerated lists using indents"
+ .SP .5v         \" Add an extra half line space
+-.ie F NR .FAM N \" Load New Century Schoolbook family if available,
+-.el .FAM T      \" otherwise, use Times New Roman
++\#.ie F NR .FAM N \" Load New Century Schoolbook family if available,
++\#.el .FAM T      \" otherwise, use Times New Roman
++.FAM T      \" otherwise, use Times New Roman
+ .FT       R
+ .PT_SIZE 11
+ .HY            \" Turn hyphenation back on
+@@ -392,8 +393,9 @@
+ .ALD .25v
+ .UNDERSCORE 3.5p "A \*[BU 2]recipe for nested lists using string tabs"
+ .SP .5v
+-.ie F NR .FAM N
+-.el .FAM T
++\#.ie F NR .FAM N
++\#.el .FAM T
++.FAM T
+ .FT  R
+ .PT_SIZE 11
+ .LS  13
+@@ -506,8 +508,9 @@
+ .ALD .25v
+ .UNDERSCORE 3.5p "Word spacing"
+ .ALD 8p
+-.ie F PR .FAM P \" Load Palatino family if available,
+-.el .FAM T      \" otherwise use Times New Roman
++\#.ie F PR .FAM P \" Load Palatino family if available,
++\#.el .FAM T      \" otherwise use Times New Roman
++.FAM T      \" otherwise use Times New Roman
+ .PT_SIZE 11
+ .LS  14
+ \#
+@@ -550,8 +553,9 @@
+ .ALD .25v
+ .UNDERSCORE 3.5p "Line kerning"
+ .ALD 8p
+-.ie F PR .FAM P
+-.el .FAM T
++\#.ie F PR .FAM P
++\#.el .FAM T
++.FAM T
+ .FT      R
+ .PT_SIZE 11
+ .LS      15
