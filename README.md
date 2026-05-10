@@ -37,9 +37,9 @@ $ cd /usr/src/t2-src/
 $ t2 up
 $ svn info | grep '^Last Change'
 
-Last Changed Author: data
-Last Changed Rev: 91112
-Last Changed Date: 2026-05-07 19:06:16 +0200 (Thu, 07 May 2026)
+Last Changed Author: rene
+Last Changed Rev: 91192
+Last Changed Date: 2026-05-09 13:57:44 +0200 (Sat, 09 May 2026)
 
 # I need git and mc :-)
 
@@ -83,9 +83,139 @@ Build image with:
 ```shell
 t2 build-target -cfg crosscli
 ```
-Total 216 packages to be build.
 
-New error (T2SDE 26.3, 2026-04-12):
+Total 215 packages to be build.
+
+New error (T2SDE 26.3, r91192, 2026-05-09):
+```
+! Running python -m installer .dist/*.whl
+! /usr/src/t2-src/build/crosscli-26-svn-generic-x86-64-linux/TOOLCHAIN/cross/bin/python: No module named installer
+! Due to previous errors, no 0-setuptools.log file!
+! (Try enabling xtrace in the config to track an error inside the build system.)
+  +00:00:05 Aborted building python/setuptools
+```
+Workaround: apply this patch:
+```diff
+Index: package/python/python-installer/python-installer.desc
+===================================================================
+--- package/python/python-installer/python-installer.desc	(revision 91192)
++++ package/python/python-installer/python-installer.desc	(working copy)
+@@ -20,7 +20,7 @@
+ 
+ [L] MIT
+ [V] 0.7.0
+-[P] X -----5---9 109.001
++[P] X 0----5---9 109.001
+ 
+ [D] 36f2f1a09c0e75452b58d01f7d9d105f24713ce04d311a609214fdf0 python-installer-0.7.0.zip !https://files.pythonhosted.org/packages/py3/i/installer/installer-0.7.0-py3-none-any.whl
+ 
+@@ -33,7 +33,7 @@
+ hook_add inmake 5 pyinstall_inmake
+ 
+ pyinstall_inmake() {
+-	local sitedir=$root$libdir/python/site-packages
++	local sitedir=$root$libdir/python3.14/site-packages
+ 	mkdir -p $sitedir
+ 	cp -a installer* $sitedir
+ 	python3 -m compileall $sitedir
+```
+
+Run:
+```shell
+t2 build-target -cfg crosscli 0-python-installer
+t2 build-target -cfg crosscli 0-setuptools
+# resume build
+t2 build-target -cfg crosscli
+```
+
+Next error - exists from (T2SDE 26.3, 2026-04-12):
+- again on `2-python/python`:
+  ```
+  ./Modules/readline.c:43:12: fatal error: readline/readline.h: No such file or directory
+  ```
+- investigation:
+  ```shell
+  $ awk '$5 == "python" || $5 == "readline" { print $0 }' config/crosscli/packages
+  X 0-2------- 102.300 python python 3.13.5 / base/development CROSS NO-PIE NO-SSP NO-LTO.mips NO-LTO.mips64 NO-LTO.clang 0
+  X --2------- 104.100 base readline 8.3-001 / base/library CROSS DIETLIBC FAT-LTO.mips FAT-LTO.mips64 0
+  ```
+- same problem (104.100 is greater than 102.300 so readline would be build "after" python - which is too late), so again:
+  ```shell
+  t2 build-target -cfg crosscli 2-readline
+  t2 build-target -cfg crosscli 2-python
+  # resume build
+  t2 build-target -cfg crosscli
+  ```
+
+Next error - applies also for (T2SDE 26.3, 2026-04-12):
+- on `2-python/python`:
+  ```
+  /Modules/_gdbmmodule.c:12:10: fatal error: gdbm.h: No such file or directory
+  ```
+- looks like there is wrong build order (3rd column)
+  ```shell
+  $ awk '$5 == "python" || $5 == "gdbm" { print $0 }' config/crosscli/packages
+  X 0-2------- 102.300 python python 3.13.5 / base/development CROSS NO-PIE NO-SSP NO-LTO.mips NO-LTO.mips64 NO-LTO.clang 0
+  X --2------- 104.800 database gdbm 1.25 / base/library CROSS 0
+  ```
+- note: I have to use `awk` for package search, because there also exists group "python" rendering `grep -w python` command useless.
+  Awk can easily target package column (No. 5).
+- trying:
+  ```shell
+  t2 build-target -cfg crosscli 2-gdbm
+  t2 build-target -cfg crosscli 2-python
+  # resume build
+  t2 build-target -cfg crosscli
+  ```
+
+New fine error (T2SDE 26.3, 2026-04-12):
+- error:
+  ```
+ File not found: download/mirror/n/netkit-base-0.17.tar.gz
+  Did you run scripts/Download for this package?
+! Due to previous errors, no 2-netkit-base.log file!
+! (Try enabling xtrace in the config to track an error inside the build system.)
+  +00:00:06 Aborted building network/netkit-base
+  ```
+- workaround:
+  ```shell
+  curl -fL -o /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz \
+    https://ftp.gwdg.de/pub/linux/misc/linux.org.uk/people/linux/Networking/netkit/netkit-base-0.17.tar.gz
+  file /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz
+  # => /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz: gzip compressed data, last modified: Mon Jul 31 00:10:39 2000, from Unix, original size modulo 2^32 225280
+  ```
+
+Next error - still applies:
+- stage `2-base/pam`
+  ```
+  doc/man/meson.build:42:2: ERROR: Command `/usr/src/t2-src/build/crosscli-25-svn-generic-x86-64-nocona-cross-linux/TOOLCHAIN/cross/bin/xmllint
+  ```
+- real error from log seems to be:
+  ```
+  I/O warning : failed to load "http://docbook.org/xml/5.0/rng/docbookxi.rng": No such file or directory
+  Relax-NG parser error : xmlRelaxNGParse: could not load http://docbook.org/xml/5.0/rng/docbookxi.rng
+  Relax-NG schema http://docbook.org/xml/5.0/rng/docbookxi.rng failed to compile
+  ```
+- I added `docbook-xml` to config, but not sure, but it seems that just on Host system:
+  ```shell
+  t2 install docbook-xml
+  t2 build-target -cfg crosscli 2-pam
+  # resume build
+  t2 build-target -cfg crosscli
+  ```
+
+Finally:
+```shell
+t2 create-iso crosscli
+```
+
+-----------------------------------------
+
+Old fixes (for reference):
+
+
+
+New error, from T2SDE 26.3, 2026-04-12:
 - glib:
   ```
   [57/704] Compiling C object glib/libglib-2.0.so.0.8800.0.p/gmessages.c.o
@@ -99,6 +229,7 @@ New error (T2SDE 26.3, 2026-04-12):
   error.
 - workaround: copy `patches/hotfix-free-sized.patch` to `/usr/src/t2-src/package/gnome/glib`
   and build again
+
 
 New error:
 - on `2-firmware/linux-firmware`
@@ -146,61 +277,6 @@ bash: error while loading shared libraries: libhistory.so.8: cannot open shared 
   mv build/crosscli-26-svn-generic-x86-64-linux/usr/lib64/libhistory.so.8.3{.old,}
   # now should proceed
   t2 build-target -cfg crosscli 5-readline
-  ```
-
-Next error - applies also for (T2SDE 26.3, 2026-04-12):
-- on `2-python/python`:
-  ```
-  /Modules/_gdbmmodule.c:12:10: fatal error: gdbm.h: No such file or directory
-  ```
-- looks like there is wrong build order (3rd column)
-  ```shell
-  $ awk '$5 == "python" || $5 == "gdbm" { print $0 }' config/crosscli/packages
-  X 0-2------- 102.300 python python 3.13.5 / base/development CROSS NO-PIE NO-SSP NO-LTO.mips NO-LTO.mips64 NO-LTO.clang 0
-  X --2------- 104.800 database gdbm 1.25 / base/library CROSS 0
-  ```
-- note: I have to use `awk` for package search, because there also exists group "python" rendering `grep -w python` command useless.
-  Awk can easily target package column (No. 5).
-- trying:
-  ```shell
-  t2 build-target -cfg crosscli 2-gdbm
-  # resume build
-  t2 build-target -cfg crosscli
-  ```
-
-Hmm, next error - applies also for (T2SDE 26.3, 2026-04-12):
-- again on `2-python/python`:
-  ```
-  ./Modules/readline.c:43:12: fatal error: readline/readline.h: No such file or directory
-  ```
-- investigation:
-  ```shell
-  $ awk '$5 == "python" || $5 == "readline" { print $0 }' config/crosscli/packages
-  X 0-2------- 102.300 python python 3.13.5 / base/development CROSS NO-PIE NO-SSP NO-LTO.mips NO-LTO.mips64 NO-LTO.clang 0
-  X --2------- 104.100 base readline 8.3-001 / base/library CROSS DIETLIBC FAT-LTO.mips FAT-LTO.mips64 0
-  ```
-- same problem (104.100 is greater than 102.300 so readline would be build "after" python - which is too late), so again:
-  ```shell
-  t2 build-target -cfg crosscli 2-readline
-  # resume build
-  t2 build-target -cfg crosscli
-  ```
-
-New fine error (T2SDE 26.3, 2026-04-12):
-- error:
-  ```
- File not found: download/mirror/n/netkit-base-0.17.tar.gz
-  Did you run scripts/Download for this package?
-! Due to previous errors, no 2-netkit-base.log file!
-! (Try enabling xtrace in the config to track an error inside the build system.)
-  +00:00:06 Aborted building network/netkit-base
-  ```
-- workaround:
-  ```shell
-  curl -fL -o /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz \
-    https://ftp.gwdg.de/pub/linux/misc/linux.org.uk/people/linux/Networking/netkit/netkit-base-0.17.tar.gz
-  file /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz
-  # => /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz: gzip compressed data, last modified: Mon Jul 31 00:10:39 2000, from Unix, original size modulo 2^32 225280
   ```
 
 And another new error:
@@ -273,27 +349,6 @@ t2 build-target -cfg crosscli 5-scons
 t2 build-target -cfg crosscli 5-serf
 t2 build-target -cfg crosscli
 ```
-
-Next error - still applies:
-- stage `2-base/pam`
-  ```
-  doc/man/meson.build:42:2: ERROR: Command `/usr/src/t2-src/build/crosscli-25-svn-generic-x86-64-nocona-cross-linux/TOOLCHAIN/cross/bin/xmllint
-  ```
-- real error from log seems to be:
-  ```
-  I/O warning : failed to load "http://docbook.org/xml/5.0/rng/docbookxi.rng": No such file or directory
-  Relax-NG parser error : xmlRelaxNGParse: could not load http://docbook.org/xml/5.0/rng/docbookxi.rng
-  Relax-NG schema http://docbook.org/xml/5.0/rng/docbookxi.rng failed to compile
-  ```
-- I added `docbook-xml` to config, but not sure, but it seems that just on Host system:
-  ```shell
-  t2 install docbook-xml
-  ```
-  fixed it(?)
-- and resume build with:
-  ```shell
-  t2 build-target -cfg crosscli
-  ```
 
 New error:
 - error:
