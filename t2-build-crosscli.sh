@@ -1,6 +1,5 @@
 #!/bin/bash
 # cross-build my CLI profile (config=crosscli)
-# WORK IN PROGRESS - NOT FINISHED YET.
 set -euo pipefail
 
 # our config name:
@@ -9,6 +8,24 @@ s=/usr/src/t2-src
 
 # error and exit (BSD like function)
 errx () { echo "ERROR: $*" >&2; exit 1; }
+
+is_uptodate () {
+	dst="$1"
+	src="$2"
+	[ -f "$src" ] || errx "Source file '$src' does not exist"
+	[ -f "$dst" ] || {
+		echo "INFO: $dst : $src # $dst does not exist: triggering build"
+		return 1
+	}
+	mtime_src=$(stat -c '%Y' "$src")
+	mtime_dst=$(stat -c '%Y' "$dst")
+	mtime_diff=$(( mtime_dst - mtime_src ))
+	[ "$mtime_diff" -ge 0 ] || {
+		echo "INFO: $dst : $src # $dst out-of-date $mtime_diff seconds: triggering rebuild"
+		return 1
+	}
+	return 0
+}
 
 ss=$(readlink -f $0)
 # d= directory of this script
@@ -23,11 +40,14 @@ x=target/generic/pkgsel/15-cli.in
 
 cf=$s/config/$c/config
 
-[ -f "$cf" ] || errx "TODO: configure -config=$c"
+is_uptodate "$cf" "$x" || {
+	t2 config -cfg $c PKGSEL_TMPL=cli X8664_OPT=generic \
+	CROSSBUILD=1 CONTINUE_ON_ERROR_AFTER=9 PKG_GCC_GNAT=0 TMPFS=0
+}
 
 # fix known build errors
 error_path=$(echo build/$c-*-svn-generic-x86-64-linux/var/adm/logs/*.err)
-[ -f "$error_path" ] || errx "Unable to detect error file, got '$error_path'"
+if [ -f "$error_path" ] ; then
 error_file=${error_path##*/}
 error="${error_file%.err}"
 echo "Detected error '$error'"
@@ -50,8 +70,14 @@ case "$error" in
 	*) errx "Unknown error '$error' occured - unable to continue"
 	       	;;
 esac
-set -x
 t2 build-target -cfg $c
+fi # build error handling
 
-
+# detect outdated: $s/build/$c-26-svn-generic-x86-64-linux/TOOLCHAIN/isofs.txt as trigger
+dst=$(echo build/$c-26-svn-generic-x86-64-linux/TOOLCHAIN/isofs.txt)
+is_uptodate $dst $cf || t2 build-target -cfg $c
+# detect outdated $s/$c.iso as trigger
+is_uptodate $s/$c.iso $dst || t2 create-iso $c
+echo "OK: finished. ISO written to $s/$c.iso"
+ls -lhs $s/$c.iso
 exit 0

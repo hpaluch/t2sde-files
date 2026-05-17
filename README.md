@@ -42,7 +42,7 @@ Last Changed Rev: 91550
 Last Changed Date: 2026-05-16 22:03:07 +0200 (Sat, 16 May 2026)
 ```
 
-Now run Boostrap script below:
+Now run Bootstrap script below to prepare T2 Linux for cross-building:
 ```shell
 ./t2-bootstrap.sh
 ```
@@ -54,6 +54,9 @@ Above script will also copy my `CLI` build template to:
 `/usr/src/t2-src/target/generic/pkgsel/15-cli.in`
 
 Next:
+
+You can now just run script `./t2-build-crosscli.sh` to do
+most of build stuff below. Kept for reference.
 
 Run `t2 config -cfg crosscli` and change:
 
