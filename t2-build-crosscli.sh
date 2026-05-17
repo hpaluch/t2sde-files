@@ -102,14 +102,14 @@ case "$error" in
 		  t2 build-target -cfg $c $error
 		set +x
 		;;
-	# hightly annoying bug - occurs only sometimes
+	# highly annoying bug - occurs only sometimes
 	# reported on: https://github.com/rxrbln/t2sde/issues/354
 	5-readline)
 		mv -v $s/build/crosscli-26-svn-generic-x86-64-linux/usr/lib64/libhistory.so.8.3{.old,}
 		cp -v $d/patches/hotfix-install-no-rm.patch $s/package/base/readline/
 		t2 build-target -cfg $c $error
 		;;
-	*) errx "Unknown error '$error' occured - unable to continue"
+	*) errx "Unknown error '$error' occurred - unable to continue"
 	       	;;
 esac
 
