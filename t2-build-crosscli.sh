@@ -84,6 +84,18 @@ case "$error" in
 	  t2 build-target -cfg $c $error
 	  set +x
 		;;
+	5-jinja2)
+		set -x
+		t2 build-target -cfg $c 5-python-flit-core
+		t2 build-target -cfg $c $error
+		set +x
+		;;
+	5-serf)
+		set -x
+		t2 build-target -cfg $c 5-scons
+		t2 build-target -cfg $c $error
+		set +x
+		;;
 	2-pam)
 		set -x
 		  t2 install docbook-xml
