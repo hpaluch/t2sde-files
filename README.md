@@ -37,33 +37,23 @@ $ cd /usr/src/t2-src/
 $ t2 up
 $ svn info | grep '^Last Change'
 
-Last Changed Author: rene
-Last Changed Rev: 91192
-Last Changed Date: 2026-05-09 13:57:44 +0200 (Sat, 09 May 2026)
-
-# I need git and mc :-)
-
-$ t2 install -optional-deps=no git mc btop
-
-# These additional tools are required on host system:
-# - scons required by serf which is http(s) library for SVN client
-# - mtools required for image creation script
-# - scdoc still required by kmod under some circumstances
-
-$ t2 install perl perl-xml-parser python python-installer setuptools \
-     pip jinja2 ninja meson libtool libxml autoconf scons mtools scdoc
+Last Changed Author: tglozar
+Last Changed Rev: 91550
+Last Changed Date: 2026-05-16 22:03:07 +0200 (Sat, 16 May 2026)
 ```
 
-Now copy our new Template "cli" (original posted on my branch and project):
-
-- original: https://github.com/hpaluch/t2sde/blob/br-cli-template/target/generic/pkgsel/15-cli.in:
-- latest: https://github.com/hpaluch/t2sde-files/blob/master/target/generic/pkgsel/15-cli.in
-
+Now run Boostrap script below:
 ```shell
-cd /usr/src/t2-src
-x=target/generic/pkgsel/15-cli.in
-curl -fLo $x https://github.com/hpaluch/t2sde-files/raw/refs/heads/master/$x
+./t2-bootstrap.sh
 ```
+It will
+* install favorite packages (`git`, `mc`, ...)
+* install Host packages required to (cross-)build T2 Linux
+
+Above script will also copy my `CLI` build template to:
+`/usr/src/t2-src/target/generic/pkgsel/15-cli.in`
+
+Next:
 
 Run `t2 config -cfg crosscli` and change:
 
