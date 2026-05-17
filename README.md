@@ -167,13 +167,11 @@ New fine error (T2SDE 26.3, 2026-04-12):
 ! (Try enabling xtrace in the config to track an error inside the build system.)
   +00:00:06 Aborted building network/netkit-base
   ```
-- workaround:
+- workaround: Please run:
   ```shell
-  curl -fL -o /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz \
-    https://ftp.gwdg.de/pub/linux/misc/linux.org.uk/people/linux/Networking/netkit/netkit-base-0.17.tar.gz
-  file /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz
-  # => /usr/src/t2-src/download/mirror/n/netkit-base-0.17.tar.gz: gzip compressed data, last modified: Mon Jul 31 00:10:39 2000, from Unix, original size modulo 2^32 225280
+  ./t2-build-crosscli.sh
   ```
+  that applies fix.
 
 Next error - still applies:
 - stage `2-base/pam`
