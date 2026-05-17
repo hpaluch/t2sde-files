@@ -41,8 +41,15 @@ x=target/generic/pkgsel/15-cli.in
 cf=$s/config/$c/config
 
 is_uptodate "$cf" "$x" || {
+	# setup new custom config
+	config=$c
+	set -x
+	# NOTE: please just exit this program
+	t2 config -cfg $c
 	t2 config -cfg $c PKGSEL_TMPL=cli X8664_OPT=generic \
-	CROSSBUILD=1 CONTINUE_ON_ERROR_AFTER=9 PKG_GCC_GNAT=0 TMPFS=0
+		CROSSBUILD=1 CONTINUE_ON_ERROR_AFTER=9 PKG_GCC_GNAT=0 TMPFS=0 \
+		TARGET=generic
+	set +x
 }
 
 # fix known build errors
@@ -52,6 +59,12 @@ error_file=${error_path##*/}
 error="${error_file%.err}"
 echo "Detected error '$error'"
 case "$error" in
+	0-glib)
+		set -x
+		cp -v $d/patches/hotfix-free-sized.patch $s/package/gnome/glib/
+		t2 build-target -cfg $c $error
+		set +x
+		;;
 	2-netkit-base)
 		set -x
 		f=$s/download/mirror/n/netkit-base-0.17.tar.gz
