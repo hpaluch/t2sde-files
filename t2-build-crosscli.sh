@@ -67,13 +67,11 @@ case "$error" in
 	0-glib)
 		set -x
 		cp -v $d/patches/hotfix-free-sized.patch $s/package/gnome/glib/
-		t2 build-target -cfg $c $error
 		set +x
 		;;
 	5-groff)
 		set -x
 		cp -v $d/patches/hotfix-groff-remove-palatino.patch $s/package/textproc/groff/
-		t2 build-target -cfg $c $error
 		set +x
 		;;
 	5-netkit-base)
@@ -82,25 +80,21 @@ case "$error" in
 	  curl -fL -o  $f \
 	    https://ftp.gwdg.de/pub/linux/misc/linux.org.uk/people/linux/Networking/netkit/netkit-base-0.17.tar.gz
 	  file $f | fgrep gzip || errx "Downloaded file '$f is invalid - not gzip compressed file"
-	  t2 build-target -cfg $c $error
 	  set +x
 		;;
 	5-jinja2)
 		set -x
 		t2 build-target -cfg $c 5-python-flit-core
-		t2 build-target -cfg $c $error
 		set +x
 		;;
 	5-serf)
 		set -x
 		t2 build-target -cfg $c 5-scons
-		t2 build-target -cfg $c $error
 		set +x
 		;;
 	2-pam)
 		set -x
 		  t2 install docbook-xml
-		  t2 build-target -cfg $c $error
 		set +x
 		;;
 	# highly annoying bug - occurs only sometimes
@@ -108,11 +102,11 @@ case "$error" in
 	5-readline)
 		mv -v $s/build/crosscli-26-svn-generic-x86-64-linux/usr/lib64/libhistory.so.8.3{.old,}
 		cp -v $d/patches/hotfix-install-no-rm.patch $s/package/base/readline/
-		t2 build-target -cfg $c $error
 		;;
 	*) errx "Unknown error '$error' occurred - unable to continue"
 	       	;;
 esac
+t2 build-target -cfg $c $error
 
 done # build error handling
 t2 build-target -cfg $c
