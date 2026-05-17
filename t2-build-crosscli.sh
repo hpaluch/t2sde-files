@@ -9,6 +9,7 @@ s=/usr/src/t2-src
 # error and exit (BSD like function)
 errx () { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "INFO: $*"; }
+warn() { echo "WARNING: $*"; }
 
 is_uptodate () {
 	dst="$1"
@@ -61,7 +62,7 @@ for error_path in "${error_paths[@]}"; do
 
 error_file=${error_path##*/}
 error="${error_file%.err}"
-echo "Detected error '$error'"
+warn "Trying to fix error '$error'"
 case "$error" in
 	0-glib)
 		set -x
