@@ -8,6 +8,7 @@ s=/usr/src/t2-src
 
 # error and exit (BSD like function)
 errx () { echo "ERROR: $*" >&2; exit 1; }
+info() { echo "INFO: $*"; }
 
 is_uptodate () {
 	dst="$1"
@@ -52,9 +53,12 @@ is_uptodate "$cf" "$x" || {
 	set +x
 }
 
-# fix known build errors
-error_path=$(echo build/$c-*-svn-generic-x86-64-linux/var/adm/logs/*.err)
-if [ -f "$error_path" ] ; then
+# fix known build errors - there could be more than 1 error!
+declare -a error_paths=( $(echo build/$c-*-svn-generic-x86-64-linux/var/adm/logs/*.err) )
+info "Found: ${#error_paths[@]} build error(s)"
+
+for error_path in "${error_paths[@]}"; do
+
 error_file=${error_path##*/}
 error="${error_file%.err}"
 echo "Detected error '$error'"
@@ -65,7 +69,13 @@ case "$error" in
 		t2 build-target -cfg $c $error
 		set +x
 		;;
-	2-netkit-base)
+	5-groff)
+		set -x
+		cp -v $d/patches/hotfix-groff-remove-palatino.patch $s/package/textproc/groff/
+		t2 build-target -cfg $c $error
+		set +x
+		;;
+	5-netkit-base)
 		set -x
 		f=$s/download/mirror/n/netkit-base-0.17.tar.gz
 	  curl -fL -o  $f \
@@ -80,11 +90,19 @@ case "$error" in
 		  t2 build-target -cfg $c $error
 		set +x
 		;;
+	# hightly annoying bug - occurs only sometimes
+	# reported on: https://github.com/rxrbln/t2sde/issues/354
+	5-readline)
+		mv -v $s/build/crosscli-26-svn-generic-x86-64-linux/usr/lib64/libhistory.so.8.3{.old,}
+		cp -v $d/patches/hotfix-install-no-rm.patch $s/package/base/readline/
+		t2 build-target -cfg $c $error
+		;;
 	*) errx "Unknown error '$error' occured - unable to continue"
 	       	;;
 esac
+
+done # build error handling
 t2 build-target -cfg $c
-fi # build error handling
 
 # detect outdated: $s/build/$c-26-svn-generic-x86-64-linux/TOOLCHAIN/isofs.txt as trigger
 dst=$(echo build/$c-26-svn-generic-x86-64-linux/TOOLCHAIN/isofs.txt)
