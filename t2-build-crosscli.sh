@@ -10,6 +10,7 @@ s=/usr/src/t2-src
 errx () { echo "ERROR: $*" >&2; exit 1; }
 info() { echo "INFO: $*"; }
 warn() { echo "WARNING: $*"; }
+run_cmd() { echo "INFO: Running: '$@' ..."; "$@"; }
 
 is_uptodate () {
 	dst="$1"
@@ -45,13 +46,11 @@ cf=$s/config/$c/config
 is_uptodate "$cf" "$x" || {
 	# setup new custom config
 	config=$c
-	set -x
 	# NOTE: please just exit this program
-	t2 config -cfg $c
-	t2 config -cfg $c PKGSEL_TMPL=cli X8664_OPT=generic \
+	run_cmd t2 config -cfg $c
+	run_cmd t2 config -cfg $c PKGSEL_TMPL=cli X8664_OPT=generic \
 		CROSSBUILD=1 CONTINUE_ON_ERROR_AFTER=9 PKG_GCC_GNAT=0 TMPFS=0 \
 		TARGET=generic
-	set +x
 }
 
 # fix known build errors - there could be more than 1 error!
@@ -113,16 +112,17 @@ case "$error" in
 	*) errx "Unknown error '$error' occurred - unable to continue"
 	       	;;
 esac
-t2 build-target -cfg $c $error
+run_cmd t2 build-target -cfg $c $error || errx "Unable to fix build of '$error' - need manual fix."
 
 done # build error handling
-t2 build-target -cfg $c
+# run this unconditional build only after error was fixed:
+[ "${#error_paths[@]}" -eq 0 ] || run_cmd t2 build-target -cfg $c
 
 # detect outdated: $s/build/$c-26-svn-generic-x86-64-linux/TOOLCHAIN/isofs.txt as trigger
 dst=$(echo build/$c-26-svn-generic-x86-64-linux/TOOLCHAIN/isofs.txt)
-is_uptodate $dst $cf || t2 build-target -cfg $c
+is_uptodate $dst $cf || run_cmd t2 build-target -cfg $c
 # detect outdated $s/$c.iso as trigger
-is_uptodate $s/$c.iso $dst || t2 create-iso $c
+is_uptodate $s/$c.iso $dst || run_cmd t2 create-iso $c
 echo "OK: finished. ISO written to $s/$c.iso"
 ls -lhs $s/$c.iso
 exit 0
