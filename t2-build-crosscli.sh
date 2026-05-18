@@ -56,6 +56,13 @@ is_uptodate "$cf" "$x" || {
 
 # fix known build errors - there could be more than 1 error!
 declare -a error_paths=( $(echo build/$c-*-svn-generic-x86-64-linux/var/adm/logs/*.err) )
+
+# when '*' are not expanded (path does not exist) there is no error at all
+[ "${#error_paths[@]}" -ne 1 -o -f "${error_paths[0]}" ] || {
+	info "Actually no error in  '${error_paths[0]}' - removing"
+	unset error_paths[0]
+}
+
 info "Found: ${#error_paths[@]} build error(s)"
 
 for error_path in "${error_paths[@]}"; do
